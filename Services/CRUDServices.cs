@@ -9,6 +9,8 @@ namespace ConsoleApp1.Services;
 class CRUDServices : ICRUDServices
 {
     private const string ConnectionString = "Server=(localdb)\\mssqllocaldb;Database=ProductsForUniversity;Trusted_Connection=True;";
+
+
     public async Task DeleteProductAsync(int id)
     {
         using SqlConnection connection = new(ConnectionString);
@@ -23,24 +25,23 @@ class CRUDServices : ICRUDServices
 
     public async Task<List<Product>> GetAllProductsAsync()
     {
+        using SqlConnection connection = new(ConnectionString);
+        using SqlCommand command = new("GetProducts", connection);
+        command.CommandType = CommandType.StoredProcedure;
+
         var products = new List<Product>();
 
-        using (SqlConnection connection = new(ConnectionString))
-        using (SqlCommand command = new("GetProducts", connection))
-        {
-            command.CommandType = CommandType.StoredProcedure;
+        await connection.OpenAsync();
+        using SqlDataReader reader = await command.ExecuteReaderAsync();
 
-            await connection.OpenAsync();
-            using SqlDataReader reader = await command.ExecuteReaderAsync();
-            while (await reader.ReadAsync())
+        while (await reader.ReadAsync())
+        {
+            products.Add(new Product
             {
-                products.Add(new Product
-                {
-                    Id = reader.GetInt32(0),
-                    Name = reader.GetString(1),
-                    Price = reader.GetDecimal(2)
-                });
-            }
+                Id = reader.GetInt32(0),
+                Name = reader.GetString(1),
+                Price = reader.GetDecimal(2)
+            });
         }
 
         return products;
